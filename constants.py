@@ -1,15 +1,26 @@
 from enum import Enum
 
+# Mouse Location
+class MouseLoc(Enum):
+    RESET: 0
+    BOARD: 1
+
 # Colors
 COLORS = {
     "background": "#293241",
     "text": "#ffffff",
+    "reset_background": "#ee6c4d",
+    "reset_text": "#e0fbfc",
+    "tile": "#3d5a80"
 }
 LIGHT_BLUE = "#E0FBFC"
 
 # Screen
-SCREEN_WIDTH = 680
-SCREEN_HEIGHT = 500
+SCREEN_WIDTH = 720
+SCREEN_HEIGHT = 570
+
+# Board
+BOARD_WIDTH = 500
 
 # Difficulties
 DIFFICULTIES = {

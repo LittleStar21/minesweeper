@@ -1,8 +1,7 @@
 import pygame
 import os
 import random
-import time
-from constants import TILE_MINE, SCREEN_WIDTH, SCREEN_HEIGHT, COLORS, LIGHT_BLUE
+from constants import TILE_MINE, SCREEN_WIDTH, SCREEN_HEIGHT, COLORS, LIGHT_BLUE, BOARD_WIDTH
 
 class Minesweeper:
     def __init__(self):
@@ -11,7 +10,8 @@ class Minesweeper:
         self.is_mouse_down = False
 
         pygame.init()
-        self.window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+        self.clock = pygame.time.Clock()
+        self.window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("Minesweeper")
         
         self.load_assets()
@@ -19,24 +19,36 @@ class Minesweeper:
 
     def load_assets(self):
         roboto_font = os.path.join("assets", "Roboto")
+        self.roboto_12_regular = pygame.font.Font(os.path.join(roboto_font, "Roboto-Black.ttf"), 12)
         self.roboto_24_bold = pygame.font.Font(os.path.join(roboto_font, "Roboto-Bold.ttf"), 24)
         self.roboto_16_regular = pygame.font.Font(os.path.join(roboto_font, "Roboto-Black.ttf"), 16)
 
     def play(self):
         running = True
+        self.reset()
+        mouse_down_location = None
+        mouse_up_location = None
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     self.is_mouse_down = True
-                    print("Mouse down:", pygame.mouse.get_pos())
+                    mouse_down_location = self.handle_mouse_loc()
                 elif event.type == pygame.MOUSEBUTTONUP:
                     self.is_mouse_down = False
-                    print("Mouse up:", pygame.mouse.get_pos())
+                    mouse_up_location = self.handle_mouse_loc()
+            
+            if mouse_up_location is not None and mouse_down_location == mouse_up_location:
+                if mouse_down_location == "reset":
+                    self.reset()
+                elif mouse_down_location == "board":
+                    print("board clicked")
+                mouse_up_location = None
 
             self.draw()
             pygame.display.update()
+            self.clock.tick(60)
 
     def draw(self):
         win_width, win_height = pygame.display.get_surface().get_size()
@@ -48,19 +60,49 @@ class Minesweeper:
         title_text = self.roboto_24_bold.render("Minesweeper", True, COLORS["text"])
         self.window.blit(title_text, title_text.get_rect(center=(win_width / 2, 25)))
 
-        # Game board
-        board_size = max(0.85 * win_height, 425)
-        pygame.draw.rect(self.window, LIGHT_BLUE, pygame.Rect(24, 50, board_size, board_size))
+        # Game board background
+        pygame.draw.rect(self.window, LIGHT_BLUE, pygame.Rect(24, 50, BOARD_WIDTH, BOARD_WIDTH))
 
         # Game tiles
+        tile_gap = 2
+        tile_size = (BOARD_WIDTH - ((self.tile + 1) * tile_gap)) / self.tile
+        for i in range(self.tile):
+            for j in range(self.tile):
+                if self.board[i][j] != -1:
+                    pygame.draw.rect(self.window, COLORS["tile"], pygame.Rect(
+                        24 + (i + 1) * tile_gap + i * tile_size,
+                        50 + (j + 1) * tile_gap + j * tile_size,
+                        tile_size,
+                        tile_size
+                    ))
+
+                    tile_text = self.roboto_12_regular.render(str(self.board[i][j]), True, (255, 255, 255))
+                    self.window.blit(tile_text, tile_text.get_rect(center=(
+                        24 + (i + 1) * tile_gap + i * tile_size + 0.5 * tile_size,
+                        50 + (j + 1) * tile_gap + j * tile_size + 0.5 * tile_size
+                    )))
+                else:
+                    pygame.draw.rect(self.window, COLORS["reset_background"], pygame.Rect(
+                        24 + (i + 1) * tile_gap + i * tile_size,
+                        50 + (j + 1) * tile_gap + j * tile_size,
+                        tile_size,
+                        tile_size
+                    ))
+
 
         # Difficulty
         difficulty_text = self.roboto_16_regular.render("Difficulty: Hard", True, COLORS["text"])
-        difficulty_left = 24 + board_size
-        difficulty_right = win_width - 24
-        self.window.blit(difficulty_text, difficulty_text.get_rect(center=(difficulty_left + (difficulty_right - difficulty_left) / 2, 60)))
+        difficulty_left = 24 + BOARD_WIDTH
+        difficulty_right = win_width
+        difficulty_center = max(550, difficulty_left + (difficulty_right - difficulty_left) / 2)
+        self.window.blit(difficulty_text, difficulty_text.get_rect(center=(difficulty_center, 60)))
 
         # Reset button
+        reset_text = self.roboto_16_regular.render("Reset", True, COLORS["reset_text"])
+        reset_background = pygame.Rect(0, 0, 120, 40)
+        reset_background.center = (difficulty_center, 475 - 20)
+        pygame.draw.rect(self.window, COLORS["reset_background"], reset_background)
+        self.window.blit(reset_text, reset_text.get_rect(center=(difficulty_center, 475 - 20)))
 
     def reset(self):
         self.tile = 24
@@ -93,10 +135,16 @@ class Minesweeper:
     def is_valid_idx(self, x, y):
         return x >= 0 and y >= 0 and x < self.tile and y < self.tile
 
-    def mouse_pos(self, mouse_x, mouse_y):
-        board_left = 24
-        board_top = 50
-        
+    def handle_mouse_loc(self):
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        if mouse_x >= 23 and mouse_x <= 450 and mouse_y >= 50 and mouse_y <= 475:
+            return "board"
+        elif mouse_x >= 489.5 and mouse_x <= 639.5 and mouse_y >= 435 and mouse_y <= 475:
+            return "reset"
+        return None
+
+    def get_pos_from_mouse(self, mouse_x, mouse_y):
+        pass
 
     def print_board(self):
         for i in range(self.tile):
